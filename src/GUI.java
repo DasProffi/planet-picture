@@ -80,11 +80,7 @@ public class GUI extends JFrame {
         jButtonReroll.setBounds(1050, 75, 150, 25);
         jButtonReroll.setText("New Seed");
         jButtonReroll.setMargin(new Insets(2, 2, 2, 2));
-        jButtonReroll.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                rerollSeed();
-            }
-        });
+        jButtonReroll.addActionListener(evt -> rerollSeed());
         cp.add(jButtonReroll);
 
         jButtonSavePicture.setBounds(1050, 370, 150, 25);
@@ -107,9 +103,7 @@ public class GUI extends JFrame {
     }
 
     public void savePicture() {
-        planet.imgToFile(planet.createBySeed(Integer.parseInt(jLabelSeedNumber.getText())),
-                jTextFieldDirectory.getText(), jTextFieldFilename.getText()
-        );
+        planet.imgToFile(jTextFieldDirectory.getText(), jTextFieldFilename.getText());
     }
 
     public void rerollSeed() {
