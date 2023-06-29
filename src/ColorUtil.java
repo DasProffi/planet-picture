@@ -37,23 +37,27 @@ public class ColorUtil {
     }
 
     static int alpha(int value) {
+        assert value >= 0 && value < 256;
         return value << 24;
     }
 
     static int red(int value) {
+        assert value >= 0 && value < 256;
         return value << 16;
     }
 
     static int green(int value) {
+        assert value >= 0 && value < 256;
         return value << 8;
     }
 
     static int blue(int value) {
+        assert value >= 0 && value < 256;
         return value;
     }
 
     static int changeLighting(int color, double multiplier) {
-        return getAlpha(color) << 24 | ((int) (getRed(color) * multiplier) % 256) << 16 | ((int) (getBlue(color) * multiplier) % 256) << 16 | ((int) (getBlue(color) * multiplier) % 256);
+        return alpha(getAlpha(color)) | red(((int) (getRed(color) * multiplier) % 256) ) | green((int) (getGreen(color) * multiplier) % 256) | blue((int) (getBlue(color) * multiplier) % 256);
     }
 
     static int grayValue(int value) {

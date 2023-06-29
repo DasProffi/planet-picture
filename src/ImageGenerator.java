@@ -12,8 +12,8 @@ import javax.imageio.ImageIO;
 public class ImageGenerator {
     private RandomGenerator randomGenerator = new RandomGenerator();
     private final int SEED_MAXIMUM = (int) (Math.pow(10, 8) - 1);
-    private int width = 1000; // in pixel
-    private int height = 1000; // in pixel
+    private static int width = 1000; // in pixel
+    private static int height = 1000; // in pixel
     final int minimumPlanetSize = 100;
     final int maximumPlanetSize = 400;
     private BufferedImage image;
@@ -115,25 +115,7 @@ public class ImageGenerator {
 
         //  Stars
         startTime = System.nanoTime();
-        int starAmount = randomGenerator.range(50, 300);
-        for (int z = 0; z < starAmount; z++) {
-            int starRadius = randomGenerator.next(7) + 1;
-            int midX = randomGenerator.next(width);
-            int midY = randomGenerator.next(height);
-            int color = (ColorUtil.BLACK) | (255 - randomGenerator.next(40) << 16) | (255 - randomGenerator.next(40) << 8) | 255 - randomGenerator.next(40);
-
-            for (int x = -starRadius; x <= starRadius; x++) {
-                int fx = (int) Math.round(Math.sqrt((Math.pow(starRadius, 2) - Math.pow(x, 2))));
-                for (int y = -fx; y <= fx; y++) {
-                    if (midX + x >= 0 && midX + x < width && midY + y >= 0 && midY + y < height) {
-                        pixels[midX + x][midY + y] = color;
-                    }
-                    if (midX + y >= 0 && midX + y < width && midY + x >= 0 && midY + x < height) {
-                        pixels[midX + y][midY + x] = color;
-                    }
-                }
-            }
-        }
+        addStars(width, height, randomGenerator, pixels);
         endTime = System.nanoTime();
         long starsTimeMs = (endTime - startTime) / 1_000_000;
         System.out.println("Stars: " + starsTimeMs + " ms");
@@ -172,7 +154,7 @@ public class ImageGenerator {
 
         // smooth and blur
         startTime = System.nanoTime();
-        pixels = smooth(pixels);
+        pixels = smooth(pixels,1);
         endTime = System.nanoTime();
         long smoothTimeMs = (endTime - startTime) / 1_000_000;
         System.out.println("Smooth: " + smoothTimeMs + " ms");
@@ -199,9 +181,97 @@ public class ImageGenerator {
         return img;
     }
 
-    // Go around a pixel, look at all neighbors in a range and sum up the value
+    private static void addStars(int width, int height, RandomGenerator randomGenerator, int[][] pixels) {
+        int starAmount = randomGenerator.range(50, 300);
+        for (int z = 0; z < starAmount; z++) {
+            boolean isDiagonal = randomGenerator.next(255) % 5 == 0;
+            boolean isBoth = randomGenerator.next(255) % 7 == 0;
+
+            int starRadius = randomGenerator.next(isDiagonal && !isBoth ? 5: 7) + 1;
+            int midX = randomGenerator.next(width - 1);
+            int midY = randomGenerator.next(height - 1);
+            int color = (ColorUtil.BLACK) | (randomGenerator.range(200, 255) << 16) | (randomGenerator.range(200, 255) << 8) | randomGenerator.range(200, 255);
+
+
+            if (isDiagonal || isBoth) {
+                for (int radiusStep = 0; radiusStep < starRadius; radiusStep++) {
+                    int lightedColor = ColorUtil.changeLighting(color, 1 - radiusStep * 0.1);
+                    if (isValidPixel(midX + radiusStep, midY + radiusStep)) {
+                        pixels[midX + radiusStep][midY + radiusStep] = ColorUtil.calcAverage(pixels[midX + radiusStep][midY + radiusStep], lightedColor);
+                    }
+                    if (isValidPixel(midX + radiusStep, midY - radiusStep)) {
+                        pixels[midX + radiusStep][midY - radiusStep] = ColorUtil.calcAverage(pixels[midX + radiusStep][midY - radiusStep], lightedColor);
+                    }
+                    if (isValidPixel(midX - radiusStep, midY + radiusStep)) {
+                        pixels[midX - radiusStep][midY + radiusStep] = ColorUtil.calcAverage(pixels[midX - radiusStep][midY + radiusStep], lightedColor);
+                    }
+                    if (isValidPixel(midX - radiusStep, midY - radiusStep)) {
+                        pixels[midX - radiusStep][midY - radiusStep] = ColorUtil.calcAverage(pixels[midX - radiusStep][midY - radiusStep], lightedColor);
+                    }
+                }
+
+                if (starRadius > 3) {
+                    int lightedColor = ColorUtil.changeLighting(color, 1 - 1 * 0.15);
+                    if (isValidPixel(midX + 1, midY)) {
+                        pixels[midX + 1][midY] = ColorUtil.calcAverage(pixels[midX + 1][midY], lightedColor);
+                    }
+                    if (isValidPixel(midX - 1, midY)) {
+                        pixels[midX - 1][midY] = ColorUtil.calcAverage(pixels[midX - 1][midY], lightedColor);
+                    }
+                    if (isValidPixel(midX, midY + 1)) {
+                        pixels[midX][midY + 1] = ColorUtil.calcAverage(pixels[midX][midY + 1], lightedColor);
+                    }
+                    if (isValidPixel(midX, midY - 1)) {
+                        pixels[midX][midY - 1] = ColorUtil.calcAverage(pixels[midX][midY - 1], lightedColor);
+                    }
+                }
+            }
+            if (isBoth || !isDiagonal) {
+                for (int radiusStep = 0; radiusStep < starRadius; radiusStep++) {
+                    int lightedColor = ColorUtil.changeLighting(color, 1 - radiusStep * 0.1);
+                    if (midX + radiusStep < width) {
+                        pixels[midX + radiusStep][midY] = ColorUtil.calcAverage(pixels[midX + radiusStep][midY], lightedColor);
+                    }
+                    if (midX - radiusStep >= 0) {
+                        pixels[midX - radiusStep][midY] = ColorUtil.calcAverage(pixels[midX - radiusStep][midY], lightedColor);
+                    }
+                    if (midY + radiusStep < height) {
+                        pixels[midX][midY + radiusStep] = ColorUtil.calcAverage(pixels[midX][midY + radiusStep], lightedColor);
+                    }
+                    if (midY - radiusStep >= 0) {
+                        pixels[midX][midY - radiusStep] = ColorUtil.calcAverage(pixels[midX][midY - radiusStep], lightedColor);
+                    }
+                }
+
+                if (starRadius > 3) {
+                    int lightedColor = ColorUtil.changeLighting(color, 1 - 1 * 0.15);
+                    if (midX + 1 < width && midY + 1 < height) {
+                        pixels[midX + 1][midY + 1] = ColorUtil.calcAverage(pixels[midX + 1][midY + 1], lightedColor);
+                    }
+                    if (midX + 1 < width && midY - 1 >= 0) {
+                        pixels[midX + 1][midY - 1] = ColorUtil.calcAverage(pixels[midX + 1][midY - 1], lightedColor);
+                    }
+                    if (midX - 1 >= 0 && midY + 1 < height) {
+                        pixels[midX - 1][midY + 1] = ColorUtil.calcAverage(pixels[midX - 1][midY + 1], lightedColor);
+                    }
+                    if (midX - 1 >= 0 && midY - 1 > 0) {
+                        pixels[midX - 1][midY - 1] = ColorUtil.calcAverage(pixels[midX - 1][midY - 1], lightedColor);
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isValidPixel(int x, int y) {
+        return x >= 0 && y >= 0 && x < ImageGenerator.width && y < ImageGenerator.height;
+    }
+
     public int[][] smooth(int[][] template) {
-        int range = 2;
+        return smooth(template,2);
+    }
+
+    // Go around a pixel, look at all neighbors in a range and sum up the value
+    public int[][] smooth(int[][] template, int range) {
         int width = template.length;
         int height = template[0].length;
         int[][] result = new int[width][height];
@@ -257,7 +327,7 @@ public class ImageGenerator {
     }
 
     private int[][] smoothedNumbers(int distance) {
-        return smoothedNumbers(1,distance)[0];
+        return smoothedNumbers(1, distance)[0];
     }
 
     // By bilinearly interpolating and smoothing the values we get 2d array off mostly smooth values
@@ -265,18 +335,18 @@ public class ImageGenerator {
         assert layers > 0;
         int width = this.width;
         int height = this.height;
-        HashMap<Integer,Integer> distancePerLayer = new HashMap<>();
+        HashMap<Integer, Integer> distancePerLayer = new HashMap<>();
 
         int[][][] smoothedNumbers = new int[layers][width][height];
         int[][][] betweenVectors = new int[layers][][];
-        for(int layer = 0; layer < layers; layer++){
-            distancePerLayer.put(layer, (int) Math.max((double)distance/Math.pow(2,layer),1));
+        for (int layer = 0; layer < layers; layer++) {
+            distancePerLayer.put(layer, (int) Math.max((double) distance / Math.pow(2, layer), 1));
             betweenVectors[layer] = randomPixels((int) Math.ceil((float) width / distancePerLayer.get(layer) + 1), (int) Math.ceil((float) height / distancePerLayer.get(layer) + 1));
         }
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                for(int layer = 0; layer < layers; layer++) {
+                for (int layer = 0; layer < layers; layer++) {
                     smoothedNumbers[layer][x][y] = calcBilinear(x, y, distancePerLayer.get(layer), betweenVectors[layer]);
                 }
             }
