@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 
@@ -339,9 +342,24 @@ public class ImageGenerator {
 
         int[][][] smoothedNumbers = new int[layers][width][height];
         int[][][] betweenVectors = new int[layers][][];
+        ExecutorService executorService = Executors.newFixedThreadPool(layers);
+
         for (int layer = 0; layer < layers; layer++) {
-            distancePerLayer.put(layer, (int) Math.max((double) distance / Math.pow(2, layer), 1));
-            betweenVectors[layer] = randomPixels((int) Math.ceil((float) width / distancePerLayer.get(layer) + 1), (int) Math.ceil((float) height / distancePerLayer.get(layer) + 1));
+            final int currentLayer = layer;
+            executorService.execute(() -> {
+                distancePerLayer.put(currentLayer, (int) Math.max((double) distance / Math.pow(2, currentLayer), 1));
+                betweenVectors[currentLayer] = randomPixels(
+                        (int) Math.ceil((float) width / distancePerLayer.get(currentLayer) + 1),
+                        (int) Math.ceil((float) height / distancePerLayer.get(currentLayer) + 1)
+                );
+            });
+        }
+
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         for (int x = 0; x < width; x++) {
@@ -410,10 +428,29 @@ public class ImageGenerator {
 
     private int[][] randomPixels(int width, int height) {
         int[][] values = new int[width][height];
-        for (int x = 0; x < values.length; x++) {
-            for (int y = 0; y < values[x].length; y++) {
-                values[x][y] = randomGenerator.next(255);
-            }
+        int numThreads = 8; // Number of threads to use
+
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+        int regionSize = values.length / numThreads;
+        for (int i = 0; i < numThreads; i++) {
+            final int threadIndex = i;
+            executorService.execute(() -> {
+                int start = threadIndex * regionSize;
+                int end = threadIndex == numThreads-1 ? values.length : start + regionSize;
+                for (int x = start; x < end; x++) {
+                    for (int y = 0; y < values[x].length; y++) {
+                        values[x][y] = randomGenerator.next(255);
+                    }
+                }
+            });
+        }
+
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         return values;
     }

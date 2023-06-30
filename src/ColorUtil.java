@@ -57,30 +57,36 @@ public class ColorUtil {
     }
 
     static int changeLighting(int color, double multiplier) {
-        return alpha(getAlpha(color)) | red(((int) (getRed(color) * multiplier) % 256) ) | green((int) (getGreen(color) * multiplier) % 256) | blue((int) (getBlue(color) * multiplier) % 256);
+        return alpha(getAlpha(color)) | red(((int) (getRed(color) * multiplier) % 256)) | green((int) (getGreen(color) * multiplier) % 256) | blue((int) (getBlue(color) * multiplier) % 256);
     }
 
     static int grayValue(int value) {
         return ColorUtil.BLACK | value << 16 | value << 8 | value;
     }
 
-    // Formula: root((x^2+y^2)/2)
     static int calcAverage(int color1, int color2) {
-        int alpha = (int) Math.sqrt((Math.pow(getAlpha(color1), 2) + Math.pow(getAlpha(color2), 2)) / 2);
-        int red = (int) Math.sqrt((Math.pow(getRed(color1), 2) + Math.pow(getRed(color2), 2)) / 2);
-        int blue = (int) Math.sqrt((Math.pow(getGreen(color1), 2) + Math.pow(getGreen(color2), 2)) / 2);
-        int green = (int) Math.sqrt((Math.pow(getBlue(color1), 2) + Math.pow(getBlue(color2), 2)) / 2);
+        return calcAverage(color1, color2, 0.5);
+    }
+
+    // Formula: root((x^2+y^2)/2)
+    static int calcAverage(int color1, int color2, double multiplier) {
+        double multiplier1 = multiplier > 0 && multiplier <= 1 ? multiplier : 0.5;
+        double multiplier2 = 1 - multiplier1;
+        int alpha = (int) Math.sqrt(Math.pow(getAlpha(color1), 2) * multiplier1 + Math.pow(getAlpha(color2), 2) * multiplier2);
+        int red = (int) Math.sqrt(Math.pow(getRed(color1), 2) * multiplier1 + Math.pow(getRed(color2), 2) * multiplier2);
+        int blue = (int) Math.sqrt(Math.pow(getGreen(color1), 2) * multiplier1 + Math.pow(getGreen(color2), 2) * multiplier2);
+        int green = (int) Math.sqrt(Math.pow(getBlue(color1), 2) * multiplier1 + Math.pow(getBlue(color2), 2) * multiplier2);
         return alpha << 24 | red << 16 | blue << 8 | green;
     }
 
     static int calcAverageList(int... colors) {
-        if(colors.length == 0){
+        if (colors.length == 0) {
             return ColorUtil.BLACK;
         }
-        int alpha = (int) Math.sqrt( (float)(Arrays.stream(colors).map(n -> (int)Math.pow(getAlpha(n),2)).sum()/ colors.length));
-        int red = (int) Math.sqrt( (float)(Arrays.stream(colors).map(n -> (int)Math.pow(getRed(n),2)).sum()/ colors.length));
-        int blue = (int) Math.sqrt( (float)(Arrays.stream(colors).map(n -> (int)Math.pow(getGreen(n),2)).sum()/ colors.length));
-        int green = (int) Math.sqrt( (float)(Arrays.stream(colors).map(n -> (int)Math.pow(getBlue(n),2)).sum()/ colors.length));
+        int alpha = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getAlpha(n), 2)).sum() / colors.length));
+        int red = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getRed(n), 2)).sum() / colors.length));
+        int blue = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getGreen(n), 2)).sum() / colors.length));
+        int green = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getBlue(n), 2)).sum() / colors.length));
         return alpha << 24 | red << 16 | blue << 8 | green;
     }
 }

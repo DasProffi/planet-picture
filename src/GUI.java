@@ -27,8 +27,8 @@ public class GUI extends JFrame {
         int frameHeight = 1070;
         setSize(frameWidth, frameHeight);
         Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
-        int x = (d.width - getSize().width) / 2;
-        int y = (d.height - getSize().height) / 2;
+        int x = Math.max((d.width - getSize().width) / 2, 0);
+        int y = Math.max((d.height - getSize().height) / 2, 0);
         setLocation(x, y);
         setTitle("Planet-Image");
         setResizable(false);
