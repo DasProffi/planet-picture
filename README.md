@@ -23,8 +23,10 @@ jar cfe ../build/current.jar GUI ./*.class
 - the second lines argument is necessary to be backwards compatible (command only works on java >=9)
 
 ## Impressions
-![planet_picture_42139296](https://github.com/DasProffi/planet-picture/assets/67233923/4bfebb66-7696-4f05-8721-ca517ccae48d)
-![planet_picture_75911665](https://github.com/DasProffi/planet-picture/assets/67233923/4480fb8f-3bb5-46c6-856f-67a5c4ff8ded)
-![planet_picture_69203074](https://github.com/DasProffi/planet-picture/assets/67233923/f2c61686-a834-4541-b304-6544f342e095)
-![planet_picture_70798376](https://github.com/DasProffi/planet-picture/assets/67233923/61f302d1-f0d8-419e-b948-b73d59831fa0)
-![planet_picture_60526904](https://github.com/DasProffi/planet-picture/assets/67233923/721d8da3-a2b7-468e-aa7a-8b87c4079109)
+![planet_picture_24809381](https://github.com/DasProffi/planet-picture/assets/67233923/844f6db3-0e08-4f94-b5fd-c913c5bcd8fa)
+![planet_picture_7735549](https://github.com/DasProffi/planet-picture/assets/67233923/7803b802-0834-46ab-b54b-27db1ecf51b7)
+![planet_picture_23687714](https://github.com/DasProffi/planet-picture/assets/67233923/c86293a2-7257-42b2-8962-96f28a34db0d)
+![planet_picture_26434890](https://github.com/DasProffi/planet-picture/assets/67233923/7a08deaf-ac51-4d23-bcec-036f987c9233)
+![planet_picture_38269089](https://github.com/DasProffi/planet-picture/assets/67233923/336599d7-8217-4e2b-bb7a-6729778e9963)
+![planet_picture_40871442](https://github.com/DasProffi/planet-picture/assets/67233923/c820f2ee-bd32-4c06-b040-fcbe3444cf3e)
+
