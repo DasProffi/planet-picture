@@ -93,21 +93,18 @@ public class ImageGenerator {
         // Background
         // Nebular
         startTime = System.nanoTime();
-        int nebularColorAmount = randomGenerator.range(15, 20);
+        int nebularColorAmount = randomGenerator.range(8, 16);
         int[] nebularColors = new int[nebularColorAmount];
         nebularColors[0] = ColorUtil.BLACK | ColorUtil.red(randomGenerator.range(10, 20)) | ColorUtil.green(randomGenerator.range(10, 20)) | ColorUtil.blue(randomGenerator.range(10, 20));
         for (int z = 1; z < nebularColorAmount; z++) {
             int before = nebularColors[z - 1];
-            nebularColors[z] = ColorUtil.BLACK | ColorUtil.red(ColorUtil.getRed(before) + randomGenerator.range(3, 5)) | ColorUtil.green(ColorUtil.getGreen(before) + randomGenerator.range(3, 5)) | ColorUtil.blue(ColorUtil.getBlue(before) + randomGenerator.range(4, 6));
+            nebularColors[z] = ColorUtil.BLACK | ColorUtil.red(ColorUtil.getRed(before) + randomGenerator.range(2, 5)) | ColorUtil.green(ColorUtil.getGreen(before) + randomGenerator.range(2, 5)) | ColorUtil.blue(ColorUtil.getBlue(before) + randomGenerator.range(3, 6));
         }
+
         int nebularPixelRange = nebularHighestNumber - nebularSmallestNumber;
         for (int x = 0; x < pixels.length; x++) {
             for (int y = 0; y < pixels[x].length; y++) {
-                int colorIndex = (nebularSmoothedPixels[x][y] - nebularSmallestNumber) * nebularColorAmount / (nebularPixelRange);
-                if (colorIndex > nebularColors.length - 1) {
-                    colorIndex = nebularColors.length - 1;
-                }
-                int currentColor = nebularColors[colorIndex];
+                int currentColor = ColorUtil.gradient(nebularColors, nebularSmoothedPixels[x][y] - nebularSmallestNumber, nebularPixelRange);
                 pixels[x][y] = currentColor;
             }
         }
@@ -140,13 +137,7 @@ public class ImageGenerator {
             int fx = (int) Math.round(Math.sqrt((Math.pow(radius, 2) - Math.pow(x, 2))));
             for (int y = -fx; y <= fx; y++) {
                 if (planetMidX + x >= 0 && planetMidX + x < width && planetMidY + y >= 0 && planetMidY + y < height) {
-                    int colorIndex = (planetSmoothedPixels[planetMidX + x][planetMidY + y] - planetSmallestNumber)
-                            * colorAmount / (planetHighestNumber - planetSmallestNumber);
-                    if (colorIndex > colors.length - 1) {
-                        colorIndex = colors.length - 1;
-                    }
-                    int curColor = colors[colorIndex];
-                    pixels[planetMidX + x][planetMidY + y] = curColor;
+                    pixels[planetMidX + x][planetMidY + y] = ColorUtil.gradient(colors, planetSmoothedPixels[planetMidX + x][planetMidY + y] - planetSmallestNumber, planetHighestNumber - planetSmallestNumber);
                 }
             }
         }

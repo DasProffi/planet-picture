@@ -79,6 +79,16 @@ public class ColorUtil {
         return alpha << 24 | red << 16 | blue << 8 | green;
     }
 
+    static int gradient(int[] colors, float value, float range) {
+        assert colors.length >= 2;
+        value = Math.max(0, value);
+        float positionPercentage = value / range;
+        int lower = Math.min((int) Math.floor((colors.length) * positionPercentage), colors.length);
+        int upper = Math.min((int) Math.ceil((colors.length) * positionPercentage), colors.length);
+        float percentage = (positionPercentage - (float) lower / colors.length) * colors.length;
+        return calcAverage(colors[Math.max(0, upper - 1)], colors[Math.max(0, lower - 1)], percentage);
+    }
+
     static int calcAverageList(int... colors) {
         if (colors.length == 0) {
             return ColorUtil.BLACK;
