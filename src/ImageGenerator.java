@@ -157,7 +157,7 @@ public class ImageGenerator {
 
         // smooth and blur
         startTime = System.nanoTime();
-        pixels = smooth(pixels,1);
+        pixels = smooth(pixels, 1);
         endTime = System.nanoTime();
         long smoothTimeMs = (endTime - startTime) / 1_000_000;
         System.out.println("Smooth: " + smoothTimeMs + " ms");
@@ -190,7 +190,7 @@ public class ImageGenerator {
             boolean isDiagonal = randomGenerator.next(255) % 5 == 0;
             boolean isBoth = randomGenerator.next(255) % 7 == 0;
 
-            int starRadius = randomGenerator.next(isDiagonal && !isBoth ? 5: 7) + 1;
+            int starRadius = randomGenerator.next(isDiagonal && !isBoth ? 5 : 7) + 1;
             int midX = randomGenerator.next(width - 1);
             int midY = randomGenerator.next(height - 1);
             int color = (ColorUtil.BLACK) | (randomGenerator.range(200, 255) << 16) | (randomGenerator.range(200, 255) << 8) | randomGenerator.range(200, 255);
@@ -270,7 +270,7 @@ public class ImageGenerator {
     }
 
     public int[][] smooth(int[][] template) {
-        return smooth(template,2);
+        return smooth(template, 2);
     }
 
     // Go around a pixel, look at all neighbors in a range and sum up the value
@@ -278,21 +278,41 @@ public class ImageGenerator {
         int width = template.length;
         int height = template[0].length;
         int[][] result = new int[width][height];
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                List<Integer> list = new ArrayList<>();
-                for (int currentX = x - range; currentX < x + range; currentX++) {
-                    for (int currentY = y - range; currentY < y + range; currentY++) {
-                        if (currentX < width && currentX >= 0 && currentY < height && currentY >= 0) {
-                            int pixelValue = template[currentX][currentY];
-                            list.add(pixelValue);
+
+        int numThreads = 8; // Number of threads to use
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+        int regionSize = width / numThreads;
+        for (int i = 0; i < numThreads; i++) {
+            final int threadIndex = i;
+            executorService.execute(() -> {
+                int start = threadIndex * regionSize;
+                // Last thread needs to fill all values cut of by in division
+                int end = threadIndex == numThreads - 1 ? width : start + regionSize;
+                for (int x = start; x < end; x++) {
+                    for (int y = 0; y < height; y++) {
+                        List<Integer> list = new ArrayList<>();
+                        for (int currentX = x - range; currentX < x + range; currentX++) {
+                            for (int currentY = y - range; currentY < y + range; currentY++) {
+                                if (currentX < width && currentX >= 0 && currentY < height && currentY >= 0) {
+                                    int pixelValue = template[currentX][currentY];
+                                    list.add(pixelValue);
+                                }
+                            }
                         }
+                        int color = ColorUtil.calcAverageList(list.stream().mapToInt(Integer::intValue).toArray());
+                        result[x][y] = color;
                     }
                 }
-                int color = ColorUtil.calcAverageList(list.stream().mapToInt(Integer::intValue).toArray());
-                result[x][y] = color;
-            }
+            });
         }
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         return result;
     }
 
@@ -317,15 +337,36 @@ public class ImageGenerator {
         assert layers > 0;
         int[][] result = new int[width][height];
         int[][][] intermediate = smoothedNumbers(layers, distance);
-        for (int x = 0; x < result.length; x++) {
-            for (int y = 0; y < result[x].length; y++) {
-                double multiplier = 0.5;
-                for (int layer = 0; layer < layers; layer++) {
-                    result[x][y] += intermediate[layer][x][y] * multiplier;
-                    multiplier /= 2;
+
+        int numThreads = 8; // Number of threads to use
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+        int regionSize = width / numThreads;
+        for (int i = 0; i < numThreads; i++) {
+            final int threadIndex = i;
+            executorService.execute(() -> {
+                int start = threadIndex * regionSize;
+                // Last thread needs to fill all values cut of by in division
+                int end = threadIndex == numThreads - 1 ? width : start + regionSize;
+                for (int x = start; x < end; x++) {
+                    for (int y = 0; y < result[x].length; y++) {
+                        double multiplier = 0.5;
+                        for (int layer = 0; layer < layers; layer++) {
+                            result[x][y] += intermediate[layer][x][y] * multiplier;
+                            multiplier /= 2;
+                        }
+                    }
                 }
-            }
+            });
         }
+
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         return result;
     }
 
@@ -362,13 +403,32 @@ public class ImageGenerator {
             e.printStackTrace();
         }
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                for (int layer = 0; layer < layers; layer++) {
-                    smoothedNumbers[layer][x][y] = calcBilinear(x, y, distancePerLayer.get(layer), betweenVectors[layer]);
+        int threads = 8;
+        ExecutorService executorService2 = Executors.newFixedThreadPool(threads);
+        int regionSize = width / threads; // Divide width into four regions
+        for (int i = 0; i < threads; i++) {
+            final int threadIndex = i;
+            executorService2.execute(() -> {
+                int start = regionSize * threadIndex;
+                int end = threadIndex == threads - 1 ? width : start + regionSize;
+
+                for (int x = start; x < end; x++) {
+                    for (int y = 0; y < height; y++) {
+                        for (int layer = 0; layer < layers; layer++) {
+                            smoothedNumbers[layer][x][y] = calcBilinear(x, y, distancePerLayer.get(layer), betweenVectors[layer]);
+                        }
+                    }
                 }
-            }
+            });
         }
+
+        executorService2.shutdown();
+        try {
+            executorService2.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         return smoothedNumbers;
     }
 
@@ -428,8 +488,8 @@ public class ImageGenerator {
 
     private int[][] randomPixels(int width, int height) {
         int[][] values = new int[width][height];
-        int numThreads = 8; // Number of threads to use
 
+        int numThreads = 8; // Number of threads to use
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
 
         int regionSize = values.length / numThreads;
@@ -437,7 +497,8 @@ public class ImageGenerator {
             final int threadIndex = i;
             executorService.execute(() -> {
                 int start = threadIndex * regionSize;
-                int end = threadIndex == numThreads-1 ? values.length : start + regionSize;
+                // Last thread needs to fill all values cut of by in division
+                int end = threadIndex == numThreads - 1 ? values.length : start + regionSize;
                 for (int x = start; x < end; x++) {
                     for (int y = 0; y < values[x].length; y++) {
                         values[x][y] = randomGenerator.next(255);
