@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -17,8 +18,8 @@ public class ImageGenerator {
     private final int SEED_MAXIMUM = (int) (Math.pow(10, 8) - 1);
     private static int width = 1000; // in pixel
     private static int height = 1000; // in pixel
-    final int minimumPlanetSize = 100;
-    final int maximumPlanetSize = 400;
+    final int minimumPlanetSize = 120;
+    final int maximumPlanetSize = 350;
     private BufferedImage image;
 
     public BufferedImage createBySeed(int seed) {
@@ -44,8 +45,9 @@ public class ImageGenerator {
         int[][] pixels = new int[width][height];
 
         // Coordinates of planet
-        int planetMidX = randomGenerator.next(width);
-        int planetMidY = randomGenerator.next(height);
+        double coordinatePaddingPercentage = 0.1;
+        int planetMidX = (int) randomGenerator.range(width * coordinatePaddingPercentage, width * (1 - coordinatePaddingPercentage));
+        int planetMidY = (int) randomGenerator.range(height * coordinatePaddingPercentage, height * (1 - coordinatePaddingPercentage));
 
         // set the radius
         int radius = randomGenerator.range(minimumPlanetSize, maximumPlanetSize);
@@ -53,9 +55,9 @@ public class ImageGenerator {
         // Random numbers
         long startTime = System.nanoTime();
 
-        final int planetDistance = randomGenerator.range(40, 100);
-        final int nebularDistance = randomGenerator.range(120, 300);
-        int[][] planetSmoothedPixels = layeredSmoothedNumbers(5, planetDistance);
+        final int planetDistanceY = (int) randomGenerator.range(radius * 0.15, radius * 0.33);
+        final int nebularDistance = (int) randomGenerator.range(Math.min(height, width) * 0.10, Math.min(height, width) * 0.30);
+        int[][] planetSmoothedPixels = layeredSmoothedNumbers(5, (int) (planetDistanceY * randomGenerator.range(1.7, 3.5)), planetDistanceY);
         int[][] nebularSmoothedPixels = layeredSmoothedNumbers(5, nebularDistance);
         int planetHighestNumber = planetSmoothedPixels[0][0];
         int planetSmallestNumber = planetSmoothedPixels[0][0];
@@ -93,12 +95,12 @@ public class ImageGenerator {
         // Background
         // Nebular
         startTime = System.nanoTime();
-        int nebularColorAmount = randomGenerator.range(8, 16);
+        int nebularColorAmount = randomGenerator.range(11, 15);
         int[] nebularColors = new int[nebularColorAmount];
-        nebularColors[0] = ColorUtil.BLACK | ColorUtil.red(randomGenerator.range(10, 20)) | ColorUtil.green(randomGenerator.range(10, 20)) | ColorUtil.blue(randomGenerator.range(10, 20));
+        nebularColors[0] = ColorUtil.BLACK;
         for (int z = 1; z < nebularColorAmount; z++) {
             int before = nebularColors[z - 1];
-            nebularColors[z] = ColorUtil.BLACK | ColorUtil.red(ColorUtil.getRed(before) + randomGenerator.range(2, 5)) | ColorUtil.green(ColorUtil.getGreen(before) + randomGenerator.range(2, 5)) | ColorUtil.blue(ColorUtil.getBlue(before) + randomGenerator.range(3, 6));
+            nebularColors[z] = ColorUtil.BLACK | ColorUtil.red(ColorUtil.getRed(before) + randomGenerator.range(2, 5)) | ColorUtil.green(ColorUtil.getGreen(before) + randomGenerator.range(2, 5)) | ColorUtil.blue(ColorUtil.getBlue(before) + randomGenerator.range(3, 5));
         }
 
         int nebularPixelRange = nebularHighestNumber - nebularSmallestNumber;
@@ -124,20 +126,28 @@ public class ImageGenerator {
         // Planet
         startTime = System.nanoTime();
         final int minimumColors = 3;
-        final int maximumColors = 8;
+        final int maximumColors = 7;
         int colorAmount = randomGenerator.range(minimumColors, maximumColors);
         int[] colors = new int[colorAmount];
         for (int z = 0; z < colors.length; z++) {
-            int color = (ColorUtil.BLACK) | (randomGenerator.next(255) << 16) | (randomGenerator.next(255) << 8) | randomGenerator.next(255);
+            int color = ColorUtil.BLACK | ColorUtil.red(randomGenerator.next(255)) | ColorUtil.green(randomGenerator.next(255)) | ColorUtil.blue(randomGenerator.next(255));
             colors[z] = color;
         }
 
+        float blurDistance = 5;
         // Paint Planet
         for (int x = -radius; x <= radius; x++) {
             int fx = (int) Math.round(Math.sqrt((Math.pow(radius, 2) - Math.pow(x, 2))));
             for (int y = -fx; y <= fx; y++) {
-                if (planetMidX + x >= 0 && planetMidX + x < width && planetMidY + y >= 0 && planetMidY + y < height) {
-                    pixels[planetMidX + x][planetMidY + y] = ColorUtil.gradient(colors, planetSmoothedPixels[planetMidX + x][planetMidY + y] - planetSmallestNumber, planetHighestNumber - planetSmallestNumber);
+                final int currentX = planetMidX + x;
+                final int currentY = planetMidY + y;
+                if (isValidPixel(currentX, currentY)) {
+                    int color = ColorUtil.gradient(colors, planetSmoothedPixels[currentX][currentY] - planetSmallestNumber, planetHighestNumber - planetSmallestNumber);
+                    double edgeDistance = Math.abs(Math.hypot(x, y) - radius);
+                    if (edgeDistance < blurDistance) {
+                        color = ColorUtil.calcAverage(color, pixels[currentX][currentY], edgeDistance / blurDistance);
+                    }
+                    pixels[currentX][currentY] = color;
                 }
             }
         }
@@ -323,11 +333,15 @@ public class ImageGenerator {
         }
     }
 
-    // Layer different smoothed numbers on top of each other to create a result
     private int[][] layeredSmoothedNumbers(int layers, int distance) {
+        return layeredSmoothedNumbers(layers, distance, distance);
+    }
+
+    // Layer different smoothed numbers on top of each other to create a result
+    private int[][] layeredSmoothedNumbers(int layers, int horizontalDistance, int verticalDistance) {
         assert layers > 0;
         int[][] result = new int[width][height];
-        int[][][] intermediate = smoothedNumbers(layers, distance);
+        int[][][] intermediate = smoothedNumbers(layers, horizontalDistance, verticalDistance);
 
         int numThreads = 8; // Number of threads to use
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
@@ -362,15 +376,15 @@ public class ImageGenerator {
     }
 
     private int[][] smoothedNumbers(int distance) {
-        return smoothedNumbers(1, distance)[0];
+        return smoothedNumbers(1, distance, distance)[0];
     }
 
     // By bilinearly interpolating and smoothing the values we get 2d array off mostly smooth values
-    private int[][][] smoothedNumbers(int layers, int distance) {
+    private int[][][] smoothedNumbers(int layers, int horizontalDistance, int verticalDistance) {
         assert layers > 0;
-        int width = this.width;
-        int height = this.height;
-        HashMap<Integer, Integer> distancePerLayer = new HashMap<>();
+        int width = ImageGenerator.width;
+        int height = ImageGenerator.height;
+        ConcurrentHashMap<Integer, Tuple<Integer, Integer>> distancePerLayer = new ConcurrentHashMap<>();
 
         int[][][] smoothedNumbers = new int[layers][width][height];
         int[][][] betweenVectors = new int[layers][][];
@@ -379,10 +393,10 @@ public class ImageGenerator {
         for (int layer = 0; layer < layers; layer++) {
             final int currentLayer = layer;
             executorService.execute(() -> {
-                distancePerLayer.put(currentLayer, (int) Math.max((double) distance / Math.pow(2, currentLayer), 1));
+                distancePerLayer.put(currentLayer, new Tuple<>((int) Math.max((double) horizontalDistance / Math.pow(2, currentLayer), 1), (int) Math.max((double) verticalDistance / Math.pow(2, currentLayer), 1)));
                 betweenVectors[currentLayer] = randomPixels(
-                        (int) Math.ceil((float) width / distancePerLayer.get(currentLayer) + 1),
-                        (int) Math.ceil((float) height / distancePerLayer.get(currentLayer) + 1)
+                        (int) Math.ceil((float) width / distancePerLayer.get(currentLayer).first + 1),
+                        (int) Math.ceil((float) height / distancePerLayer.get(currentLayer).second + 1)
                 );
             });
         }
@@ -406,7 +420,7 @@ public class ImageGenerator {
                 for (int x = start; x < end; x++) {
                     for (int y = 0; y < height; y++) {
                         for (int layer = 0; layer < layers; layer++) {
-                            smoothedNumbers[layer][x][y] = calcBilinear(x, y, distancePerLayer.get(layer), betweenVectors[layer]);
+                            smoothedNumbers[layer][x][y] = calcBilinear(x, y, distancePerLayer.get(layer).first, distancePerLayer.get(layer).second, betweenVectors[layer]);
                         }
                     }
                 }
@@ -424,6 +438,10 @@ public class ImageGenerator {
     }
 
     private int calcBilinear(int x, int y, int distance, int[][] betweenVectors) {
+        return calcBilinear(x, y, distance, distance, betweenVectors);
+    }
+
+    private int calcBilinear(int x, int y, int horizontalDistance, int verticalDistance, int[][] betweenVectors) {
         /* Position of the point in the top left corner in the between array
            Layout of points in a square: P is our point
             1oo2
@@ -431,8 +449,8 @@ public class ImageGenerator {
             oooo
             3oo4
         */
-        int betweenX = x / distance;
-        int betweenY = y / distance;
+        int betweenX = x / horizontalDistance;
+        int betweenY = y / verticalDistance;
 
         // Get index in between array
         int X1 = betweenX;
@@ -443,14 +461,15 @@ public class ImageGenerator {
         int Y3 = betweenY + 1;
         int X4 = betweenX + 1;
         int Y4 = betweenY + 1;
-        double area1 = Math.abs(x - X4 * distance) * Math.abs(y - Y4 * distance);
-        double area2 = Math.abs(x - X3 * distance) * Math.abs(y - Y3 * distance);
-        double area3 = Math.abs(x - X2 * distance) * Math.abs(y - Y2 * distance);
-        double area4 = Math.abs(x - X1 * distance) * Math.abs(y - Y1 * distance);
-        double weight1 = smoothStep(area1 / Math.pow(distance, 2));
-        double weight2 = smoothStep(area2 / Math.pow(distance, 2));
-        double weight3 = smoothStep(area3 / Math.pow(distance, 2));
-        double weight4 = smoothStep(area4 / Math.pow(distance, 2));
+        double area1 = Math.abs(x - X4 * horizontalDistance) * Math.abs(y - Y4 * verticalDistance);
+        double area2 = Math.abs(x - X3 * horizontalDistance) * Math.abs(y - Y3 * verticalDistance);
+        double area3 = Math.abs(x - X2 * horizontalDistance) * Math.abs(y - Y2 * verticalDistance);
+        double area4 = Math.abs(x - X1 * horizontalDistance) * Math.abs(y - Y1 * verticalDistance);
+        final double entireArea = horizontalDistance * verticalDistance;
+        double weight1 = smoothStep(area1 / entireArea);
+        double weight2 = smoothStep(area2 / entireArea);
+        double weight3 = smoothStep(area3 / entireArea);
+        double weight4 = smoothStep(area4 / entireArea);
         double sum = weight1 + weight2 + weight3 + weight4;
         return (int) ((weight1 / sum * betweenVectors[X1][Y1]) + (weight2 / sum * betweenVectors[X2][Y2]) + (weight3 / sum * betweenVectors[X3][Y3]) + (weight4 / sum * betweenVectors[X4][Y4]));
     }

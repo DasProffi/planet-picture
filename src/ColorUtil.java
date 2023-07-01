@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.Dictionary;
 
 // Class for helping to manipulate integer color values
 public class ColorUtil {
@@ -86,7 +87,12 @@ public class ColorUtil {
         int lower = Math.min((int) Math.floor((colors.length) * positionPercentage), colors.length);
         int upper = Math.min((int) Math.ceil((colors.length) * positionPercentage), colors.length);
         float percentage = (positionPercentage - (float) lower / colors.length) * colors.length;
-        return calcAverage(colors[Math.max(0, upper - 1)], colors[Math.max(0, lower - 1)], percentage);
+        return calcAverage(colors[Math.max(0, upper - 1)], colors[Math.max(0, lower - 1)], smoothStep(percentage));
+    }
+
+    // A Function to smooth values between 0 and 1
+    private static double smoothStep(double value) {
+        return 3 * Math.pow(value, 2) - 2 * Math.pow(value, 3);
     }
 
     static int calcAverageList(int... colors) {
@@ -95,8 +101,24 @@ public class ColorUtil {
         }
         int alpha = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getAlpha(n), 2)).sum() / colors.length));
         int red = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getRed(n), 2)).sum() / colors.length));
-        int blue = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getGreen(n), 2)).sum() / colors.length));
-        int green = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getBlue(n), 2)).sum() / colors.length));
-        return alpha << 24 | red << 16 | blue << 8 | green;
+        int green = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getGreen(n), 2)).sum() / colors.length));
+        int blue = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getBlue(n), 2)).sum() / colors.length));
+        return alpha(alpha) | red(red) | blue(blue) | green(green);
+    }
+
+    static int calcAverageListWeighted(Tuple<Integer, Float>... weightedColors) {
+        if (weightedColors.length == 0) {
+            return ColorUtil.BLACK;
+        }
+        int alpha = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getAlpha(n.first), 2) * n.second).sum());
+        int red = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getRed(n.first), 2) * n.second).sum());
+        int green = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getGreen(n.first), 2) * n.second).sum());
+        int blue = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getBlue(n.first), 2) * n.second).sum());
+
+        alpha = Math.min(255, Math.max(alpha, 0));
+        red = Math.min(255, Math.max(red, 0));
+        green = Math.min(255, Math.max(green, 0));
+        blue = Math.min(255, Math.max(blue, 0));
+        return alpha(alpha) | red(red) | blue(blue) | green(green);
     }
 }

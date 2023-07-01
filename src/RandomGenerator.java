@@ -25,8 +25,31 @@ public class RandomGenerator {
         return Math.abs((x%(max+1)));
     }
 
+    public double next() {
+        int x = current;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        current = x;
+        return Math.abs((float) x / Integer.MAX_VALUE);
+    }
+
+    public double next(double max) {
+        int x = current;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        current = x;
+        return Math.abs((float) x / Integer.MAX_VALUE) * max;
+    }
+
     public int range(int min,int max) {
         int next = next(max-min);
+        return min+next;
+    }
+
+    public double range(double min,double max) {
+        double next = next(max-min);
         return min+next;
     }
 }
