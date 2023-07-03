@@ -3,16 +3,16 @@ A procedurally generated 2D image of a Planet and Stars with an export to file f
 
 The current and original version can be found in [build](build/)
 
-**NOTE the start up an first images might take some time (~10 sec) afterwards it improves**
+**NOTE the start up and first images might take some time (~10 sec) to generate afterwards it improves to around (~1 sec)**
 
 ## Used Ideas
-- Pseudorandom number generation (XOR-shift)
+- Pseudorandom number generation (with XOR-shift)
 - Bilinear-Interpolation
 - Smoothstep-Function
 - 2D Noise
 - Layering of Noise
 - Basic Java UI
-- Int as Color with Bit shifting operations
+- int representation of Colors with bit shifting operations
 
 ## Build
 ```
