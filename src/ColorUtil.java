@@ -20,21 +20,25 @@ public class ColorUtil {
     static int getBlue(int color) {
         return (color << 24) >>> 24;
     }
-
+    
+    static int fromARGB(int alpha, int red, int green, int blue) {
+        return alpha << 24 | red << 16 | green << 8 | blue;
+    }
+    
     static int setAlpha(int color, int value) {
-        return value << 24 | getRed(color) << 16 | getBlue(color) << 8 | getGreen(color);
+        return value << 24 | getRed(color) << 16 | getGreen(color) << 8 | getBlue(color);
     }
 
     static int setRed(int color, int value) {
-        return getAlpha(color) << 24 | value << 16 | getBlue(color) << 8 | getGreen(color);
+        return getAlpha(color) << 24 | value << 16 | getGreen(color) << 8 | getBlue(color);
     }
 
     static int setGreen(int color, int value) {
-        return getAlpha(color) << 24 | getRed(color) << 16 | value << 8 | getGreen(color);
+        return getAlpha(color) << 24 | getRed(color) << 16 | getGreen(color) << 8 | value;
     }
 
     static int setBlue(int color, int value) {
-        return getAlpha(color) << 24 | getRed(color) << 16 | getBlue(color) << 8 | value;
+        return getAlpha(color) << 24 | getRed(color) << 16 | value << 8 | getBlue(color);
     }
 
     static int alpha(int value) {
@@ -75,9 +79,9 @@ public class ColorUtil {
         double multiplier2 = 1 - multiplier1;
         int alpha = (int) Math.sqrt(Math.pow(getAlpha(color1), 2) * multiplier1 + Math.pow(getAlpha(color2), 2) * multiplier2);
         int red = (int) Math.sqrt(Math.pow(getRed(color1), 2) * multiplier1 + Math.pow(getRed(color2), 2) * multiplier2);
-        int blue = (int) Math.sqrt(Math.pow(getGreen(color1), 2) * multiplier1 + Math.pow(getGreen(color2), 2) * multiplier2);
-        int green = (int) Math.sqrt(Math.pow(getBlue(color1), 2) * multiplier1 + Math.pow(getBlue(color2), 2) * multiplier2);
-        return alpha << 24 | red << 16 | blue << 8 | green;
+        int green = (int) Math.sqrt(Math.pow(getGreen(color1), 2) * multiplier1 + Math.pow(getGreen(color2), 2) * multiplier2);
+        int blue = (int) Math.sqrt(Math.pow(getBlue(color1), 2) * multiplier1 + Math.pow(getBlue(color2), 2) * multiplier2);
+        return alpha << 24 | red << 16 | green << 8 | blue;
     }
 
     static int gradient(int[] colors, float value, float range) {
@@ -101,9 +105,9 @@ public class ColorUtil {
         }
         int alpha = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getAlpha(n), 2)).sum() / colors.length));
         int red = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getRed(n), 2)).sum() / colors.length));
-        int green = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getGreen(n), 2)).sum() / colors.length));
-        int blue = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getBlue(n), 2)).sum() / colors.length));
-        return alpha(alpha) | red(red) | blue(blue) | green(green);
+        int green = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getBlue(n), 2)).sum() / colors.length));
+        int blue = (int) Math.sqrt((float) (Arrays.stream(colors).map(n -> (int) Math.pow(getGreen(n), 2)).sum() / colors.length));
+        return alpha(alpha) | red(red) | green(green) | blue(blue);
     }
 
     static int calcAverageListWeighted(Tuple<Integer, Float>... weightedColors) {
@@ -112,13 +116,13 @@ public class ColorUtil {
         }
         int alpha = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getAlpha(n.first), 2) * n.second).sum());
         int red = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getRed(n.first), 2) * n.second).sum());
-        int green = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getGreen(n.first), 2) * n.second).sum());
-        int blue = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getBlue(n.first), 2) * n.second).sum());
+        int green = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getBlue(n.first), 2) * n.second).sum());
+        int blue = (int) Math.sqrt(Arrays.stream(weightedColors).mapToDouble(n -> Math.pow(getGreen(n.first), 2) * n.second).sum());
 
         alpha = Math.min(255, Math.max(alpha, 0));
         red = Math.min(255, Math.max(red, 0));
         green = Math.min(255, Math.max(green, 0));
         blue = Math.min(255, Math.max(blue, 0));
-        return alpha(alpha) | red(red) | blue(blue) | green(green);
+        return alpha(alpha) | red(red) | green(green) | blue(blue);
     }
 }

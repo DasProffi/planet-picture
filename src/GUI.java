@@ -1,5 +1,4 @@
 import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
 
 public class GUI extends JFrame {
@@ -115,7 +114,7 @@ public class GUI extends JFrame {
     public void generateWithSeed() {
         int seed = Integer.parseInt(jTextFieldSeed.getText());
         if (seed < Math.pow(10, 8)) {
-            ImageIcon icon = new ImageIcon(planet.createBySeed(seed));
+            ImageIcon icon = new ImageIcon(planet.nextBySeed(seed));
             updateUI(icon);
         }
     }
